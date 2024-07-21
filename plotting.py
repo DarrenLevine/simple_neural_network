@@ -8,6 +8,7 @@ class PlotData():
         self.plot_handle = None
         self.fig = None
         self.ax = None
+        self.im = None
 
 
 class Plotter():
@@ -44,20 +45,34 @@ class Plotter():
         data = self.get_data(figure_title)
         if not isinstance(img, list):
             img = [img]
-        creating_plot = data.fig is None
+        creating_plot = data.fig is None or len(img) != len(self.im)
         if creating_plot:
+            if data.fig is not None:
+                plt.close(data.fig)
             data.fig, data.ax = plt.subplots(1, len(img), figsize=(10, 5))
+            self.im = [None for _ in range(len(img))]
         if len(img) == 1:
             data.ax = [data.ax]
         data.fig.suptitle(figure_title)
         if title is None:
             title = [None] * len(img)
-        for i, c in enumerate(img):
-            if creating_plot:
+        if creating_plot:
+            x_limits = []
+            y_limits = []
+            for i, c in enumerate(img):
                 data.ax[i].set_title(title[i])
-                data.ax[i] = data.ax[i].imshow(c, cmap='gray_r')
-            else:
-                data.ax[i].set_data(c)
+                self.im[i] = data.ax[i].imshow(c, cmap='gray_r')
+                x_limits += [data.ax[i].get_xlim()]
+                y_limits += [data.ax[i].get_ylim()]
+            max_x_lim = max(x_limits)
+            max_y_lim = max(y_limits)
+            for i, _ in enumerate(img):
+                data.ax[i].set_axis_off()
+                data.ax[i].set_xlim(max_x_lim)
+                data.ax[i].set_ylim(max_y_lim)
+        else:
+            for i, c in enumerate(img):
+                self.im[i].set_data(c)
                 data.fig.canvas.flush_events()
         if pause_time is None:
             plt.show()
